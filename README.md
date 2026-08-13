@@ -6,7 +6,7 @@ This project demonstrates the design of a highly available, scalable, and secure
 
 ## Architecture Diagram
 
-![AWS High Availability Architecture](architecture/aws-high-availability-architecture-diagram.png)
+![AWS High Availability Architecture](architecture/aws-high-aavailability-web-architecture-diagram.png)
 
 The architecture follows AWS best practices for:
 
