@@ -3,12 +3,28 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: >
   Creates the VPC for the highly available AWS web application architecture.
 
+Parameters:
+
+  VPCCidr:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: CIDR block for the application VPC
+
+  EnvironmentName:
+    Type: String
+    Default: Development
+    AllowedValues:
+      - Development
+      - Staging
+      - Production
+    Description: Environment name for the infrastructure
+
 Resources:
   # Add VPC
   ApplicationVPC:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: 10.0.0.0/16
+      CidrBlock: !Ref VPCCidr
       EnableDnsSupport: true
       EnableDnsHostnames: true
       Tags:
@@ -187,3 +203,25 @@ Resources:
     Properties:
       SubnetId: !Ref PrivateSubnetAZ2
       RouteTableId: !Ref PrivateRouteTableAZ2
+
+Outputs:
+
+  VPCId:
+    Description: ID of the application VPC
+    Value: !Ref ApplicationVPC
+
+  PublicSubnetAZ1Id:
+    Description: ID of the public subnet in Availability Zone 1
+    Value: !Ref PublicSubnetAZ1
+
+  PublicSubnetAZ2Id:
+    Description: ID of the public subnet in Availability Zone 2
+    Value: !Ref PublicSubnetAZ2
+
+  PrivateSubnetAZ1Id:
+    Description: ID of the private subnet in Availability Zone 1
+    Value: !Ref PrivateSubnetAZ1
+
+  PrivateSubnetAZ2Id:
+    Description: ID of the private subnet in Availability Zone 2
+    Value: !Ref PrivateSubnetAZ2
