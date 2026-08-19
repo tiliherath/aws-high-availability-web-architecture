@@ -77,7 +77,7 @@ Resources:
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref ApplicationVPC
 
-  # Create Public route in VPV
+  # Create Public route in VPC
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -85,7 +85,7 @@ Resources:
       Tags:
         - Key: Name
           Value: Public-Route-Table
-  ## Add internet route to public RT
+  ## Add internet route to public route table
   PublicRoute:
     Type: AWS::EC2::Route
     DependsOn: InternetGatewayAttachment
@@ -94,7 +94,7 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
-  # Associate public subnets with public RT
+  # Associate public subnets with public route table
   PublicSubnetRouteTableAssociationAZ1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -107,7 +107,7 @@ Resources:
       SubnetId: !Ref PublicSubnetAZ2
       RouteTableId: !Ref PublicRouteTable
 
-  # Add NAT GWs and EIPs for private subnets in each AZ
+  # Add NAT gateways and EIPs for private subnets in each AZ
   ## Add EIP for AZ1
   NatGatewayEIPAZ1:
     Type: AWS::EC2::EIP
@@ -135,7 +135,7 @@ Resources:
       Tags:
         - Key: Name
           Value: NAT-Gateway-EIP-AZ2
-  ## Add NAT GW for AZ2
+  ## Add NAT gateway for AZ2
   NatGatewayAZ2:
     Type: AWS::EC2::NatGateway
     Properties:
@@ -144,7 +144,7 @@ Resources:
       Tags:
         - Key: Name
           Value: NAT-Gateway-AZ2
-  # Private RT for AZ1
+  # Private route table for AZ1
   PrivateRouteTableAZ1:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -159,7 +159,7 @@ Resources:
       RouteTableId: !Ref PrivateRouteTableAZ1
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId: !Ref NatGatewayAZ1
-  ## Asscosiate with private subnet
+  ## Associate with private subnet
   PrivateSubnetRouteTableAssociationAZ1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -181,7 +181,7 @@ Resources:
       RouteTableId: !Ref PrivateRouteTableAZ2
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId: !Ref NatGatewayAZ2
-  # Asscoiate with private subnet AZ2
+  # Associate with private subnet AZ2
   PrivateSubnetRouteTableAssociationAZ2:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
