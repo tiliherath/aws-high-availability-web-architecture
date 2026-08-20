@@ -5,9 +5,15 @@ Description: >
 
 Parameters:
 
-  VPCId:
-    Type: AWS::EC2::VPC::Id
-    Description: VPC where the security groups will be created
+  # VPCId parameter to manually specify the VPC where the security groups will be created
+  #VPCId:
+  #  Type: AWS::EC2::VPC::Id
+  # Description: VPC where the security groups will be created
+  # Define VPCStackName:
+  VPCStackName:
+    Type: String
+    Default: ha-webapp-vpc
+    Description: Name of the CloudFormation stack containing the VPC
 
 Resources:
 
@@ -15,7 +21,10 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow HTTP traffic from the internet to the Application Load Balancer
-      VpcId: !Ref VPCId
+      #VpcId: !Ref VPCId
+      VpcId:
+        Fn::ImportValue:
+          !Sub '${VPCStackName}-VPCId'
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
@@ -29,7 +38,10 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow HTTP traffic from the Application Load Balancer
-      VpcId: !Ref VPCId
+      #VpcId: !Ref VPCId
+      VpcId:
+        Fn::ImportValue:
+          !Sub '${VPCStackName}-VPCId'
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
@@ -43,7 +55,9 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow MySQL traffic only from the web servers
-      VpcId: !Ref VPCId
+      VpcId:
+        Fn::ImportValue:
+          !Sub '${VPCStackName}-VPCId'
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 3306

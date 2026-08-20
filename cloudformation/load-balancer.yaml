@@ -5,21 +5,15 @@ Description: >
 
 Parameters:
 
-  VPCId:
-    Type: AWS::EC2::VPC::Id
-    Description: VPC where the load balancer will be created
+  VPCStackName:
+    Type: String
+    Default: ha-webapp-vpc
+    Description: Name of the CloudFormation stack containing the VPC
 
-  PublicSubnet1:
-    Type: AWS::EC2::Subnet::Id
-    Description: First public subnet
-
-  PublicSubnet2:
-    Type: AWS::EC2::Subnet::Id
-    Description: Second public subnet
-
-  ALBSecurityGroupId:
-    Type: AWS::EC2::SecurityGroup::Id
-    Description: Security Group for the Application Load Balancer
+  SecurityGroupStackName:
+    Type: String
+    Default: ha-webapp-security
+    Description: Name of the CloudFormation stack containing the security groups
 
 Resources:
 
@@ -30,10 +24,13 @@ Resources:
       Scheme: internet-facing
       Type: application
       SecurityGroups:
-        - !Ref ALBSecurityGroupId
+        - Fn::ImportValue:
+            !Sub '${SecurityGroupStackName}-ALBSecurityGroupId'
       Subnets:
-        - !Ref PublicSubnet1
-        - !Ref PublicSubnet2
+        - Fn::ImportValue:
+            !Sub '${VPCStackName}-PublicSubnetAZ1Id'
+        - Fn::ImportValue:
+            !Sub '${VPCStackName}-PublicSubnetAZ2Id'
       Tags:
         - Key: Name
           Value: ha-webapp-alb
@@ -45,7 +42,9 @@ Resources:
       Port: 80
       Protocol: HTTP
       TargetType: instance
-      VpcId: !Ref VPCId
+      VpcId:
+        Fn::ImportValue:
+          !Sub '${VPCStackName}-VPCId'
       HealthCheckEnabled: true
       HealthCheckProtocol: HTTP
       HealthCheckPort: traffic-port
@@ -73,7 +72,7 @@ Outputs:
     Description: ARN of the web server target group
     Value: !Ref WebTargetGroup
     Export:
-      Name: !Sub '${AWS::StackName}-WebTargetGroupArn'
+      Name: !Sub '${AWS::StackName}-TargetGroupArn'
 
   LoadBalancerArn:
     Description: ARN of the Application Load Balancer

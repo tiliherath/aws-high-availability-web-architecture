@@ -6,21 +6,20 @@ Description: >
 
 Parameters:
 
-  VPCId:
-    Type: AWS::EC2::VPC::Id
-    Description: VPC where the web servers will run
+  VPCStackName:
+    Type: String
+    Default: ha-webapp-vpc
+    Description: Name of the CloudFormation stack containing the VPC
 
-  PrivateSubnet1:
-    Type: AWS::EC2::Subnet::Id
-    Description: First private subnet
+  SecurityGroupStackName:
+    Type: String
+    Default: ha-webapp-security
+    Description: Name of the CloudFormation stack containing the security groups
 
-  PrivateSubnet2:
-    Type: AWS::EC2::Subnet::Id
-    Description: Second private subnet
-
-  WebServerSecurityGroupId:
-    Type: AWS::EC2::SecurityGroup::Id
-    Description: Security Group for the web servers
+  LoadBalancerStackName:
+    Type: String
+    Default: ha-webapp-alb
+    Description: Name of the CloudFormation stack containing the Application Load Balancer
 
   InstanceType:
     Type: String
@@ -41,11 +40,6 @@ Parameters:
     Type: Number
     Default: 4
     Description: Maximum number of EC2 instances
-
-  LoadBalancerStackName:
-    Type: String
-    Default: ha-webapp-alb
-    Description: Name of the CloudFormation stack containing the Application Load Balancer
 
 Resources:
 
@@ -88,7 +82,8 @@ Resources:
         InstanceType: !Ref InstanceType
 
         SecurityGroupIds:
-          - !Ref WebServerSecurityGroupId
+          - Fn::ImportValue:
+              !Sub '${SecurityGroupStackName}-WebServerSecurityGroupId'
 
         IamInstanceProfile:
           Name: !Ref EC2InstanceProfile
@@ -128,12 +123,14 @@ Resources:
       DesiredCapacity: !Ref DesiredCapacity
 
       VPCZoneIdentifier:
-        - !Ref PrivateSubnet1
-        - !Ref PrivateSubnet2
+        - Fn::ImportValue:
+            !Sub '${VPCStackName}-PrivateSubnetAZ1Id'
+        - Fn::ImportValue:
+            !Sub '${VPCStackName}-PrivateSubnetAZ2Id'
 
       TargetGroupARNs:
         - Fn::ImportValue:
-            !Sub '${LoadBalancerStackName}-TargetGroupArn' # handle the dependancy between ALB and EC2/AutoScalingGroup
+            !Sub '${LoadBalancerStackName}-TargetGroupArn' # Handle the dependancy between ALB and EC2/AutoScalingGroup
 
       LaunchTemplate:
         LaunchTemplateId: !Ref WebLaunchTemplate

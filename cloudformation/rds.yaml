@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: >
+  Creates an Amazon RDS MySQL database for the highly available
+  AWS web application architecture.
+
+Parameters:
+
+  VPCStackName:
+    Type: String
+    Default: ha-webapp-vpc
+    Description: Name of the CloudFormation stack containing the VPC
+
+  SecurityGroupStackName:
+    Type: String
+    Default: ha-webapp-security
+    Description: Name of the CloudFormation stack containing the security groups
+
+  DBInstanceClass:
+    Type: String
+    Default: db.t3.micro
+    Description: RDS instance class
+
+  DBName:
+    Type: String
+    Default: appdb
+    Description: Initial database name
+
+  DBUsername:
+    Type: String
+    Default: appadmin
+    Description: Database administrator username
+
+  DBPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: Database administrator password
+
+Resources:
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Private subnets for the application database
+      SubnetIds:
+        - Fn::ImportValue:
+            !Sub '${VPCStackName}-PrivateSubnetAZ1Id'
+        - Fn::ImportValue:
+            !Sub '${VPCStackName}-PrivateSubnetAZ2Id'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-DBSubnetGroup'
+
+  ApplicationDatabase:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      DBInstanceClass: !Ref DBInstanceClass
+      Engine: mysql
+      # EngineVersion: '8.0' # Removed to go with available default version for better compatibility and support
+      AllocatedStorage: 20
+      StorageType: gp3
+      StorageEncrypted: true
+      # MultiAZ: true # Enable Multi-AZ deployment for high availability and failover support
+      MultiAZ: false # For development and testing purposes, Multi-AZ is disabled to reduce costs. In production, consider enabling Multi-AZ for high availability.
+
+      DBName: !Ref DBName
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - Fn::ImportValue:
+            !Sub '${SecurityGroupStackName}-DatabaseSecurityGroupId'
+
+      BackupRetentionPeriod: 7
+      PubliclyAccessible: false
+      AutoMinorVersionUpgrade: true
+
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-MySQL'
+
+Outputs:
+
+  DBEndpoint:
+    Description: RDS database endpoint
+    Value: !GetAtt ApplicationDatabase.Endpoint.Address
+
+  DBPort:
+    Description: RDS database port
+    Value: !GetAtt ApplicationDatabase.Endpoint.Port
+
+  DBInstanceIdentifier:
+    Description: RDS database instance identifier
+    Value: !Ref ApplicationDatabase

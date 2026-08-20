@@ -209,19 +209,29 @@ Outputs:
   VPCId:
     Description: ID of the application VPC
     Value: !Ref ApplicationVPC
+    Export:
+      Name: !Sub '${AWS::StackName}-VPCId'
 
   PublicSubnetAZ1Id:
     Description: ID of the public subnet in Availability Zone 1
     Value: !Ref PublicSubnetAZ1
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicSubnetAZ1Id'
 
   PublicSubnetAZ2Id:
     Description: ID of the public subnet in Availability Zone 2
     Value: !Ref PublicSubnetAZ2
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicSubnetAZ2Id'
 
   PrivateSubnetAZ1Id:
     Description: ID of the private subnet in Availability Zone 1
     Value: !Ref PrivateSubnetAZ1
+    Export:
+      Name: !Sub '${AWS::StackName}-PrivateSubnetAZ1Id'
 
   PrivateSubnetAZ2Id:
     Description: ID of the private subnet in Availability Zone 2
     Value: !Ref PrivateSubnetAZ2
+    Export:
+      Name: !Sub '${AWS::StackName}-PrivateSubnetAZ2Id'

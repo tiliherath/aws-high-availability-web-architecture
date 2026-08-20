@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: >
+  Creates CloudWatch monitoring and CPU-based scaling policies
+  for the highly available AWS web application.
+
+Parameters:
+
+  AutoScalingGroupName:
+    Type: String
+    Description: Name of the EC2 Auto Scaling Group
+
+Resources:
+
+  ScaleOutPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroupName
+      PolicyType: SimpleScaling
+      AdjustmentType: ChangeInCapacity
+      ScalingAdjustment: 1
+      Cooldown: 300
+
+  ScaleInPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroupName
+      PolicyType: SimpleScaling
+      AdjustmentType: ChangeInCapacity
+      ScalingAdjustment: -1
+      Cooldown: 300
+
+  HighCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Scale out when average CPU exceeds 70 percent
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 70
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref AutoScalingGroupName
+      AlarmActions:
+        - !Ref ScaleOutPolicy
+      TreatMissingData: notBreaching
+
+  LowCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Scale in when average CPU falls below 30 percent
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 30
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref AutoScalingGroupName
+      AlarmActions:
+        - !Ref ScaleInPolicy
+      TreatMissingData: notBreaching
+
+Outputs:
+
+  HighCPUAlarmName:
+    Description: CloudWatch alarm for high CPU utilization
+    Value: !Ref HighCPUAlarm
+
+  LowCPUAlarmName:
+    Description: CloudWatch alarm for low CPU utilization
+    Value: !Ref LowCPUAlarm
