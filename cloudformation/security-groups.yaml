@@ -66,3 +66,9 @@ Outputs:
     Value: !Ref WebServerSecurityGroup
     Export:
       Name: !Sub '${AWS::StackName}-WebServerSecurityGroupId'
+
+  DatabaseSecurityGroupId:
+    Description: Security Group ID for the database
+    Value: !Ref DatabaseSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-DatabaseSecurityGroupId'
