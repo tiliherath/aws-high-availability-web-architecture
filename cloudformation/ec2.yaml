@@ -1,0 +1,158 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: >
+  Creates the EC2 launch template and Auto Scaling Group for the highly available
+  AWS web application architecture.
+
+Parameters:
+
+  VPCId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC where the web servers will run
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet::Id
+    Description: First private subnet
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet::Id
+    Description: Second private subnet
+
+  WebServerSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security Group for the web servers
+
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    Description: EC2 instance type
+
+  DesiredCapacity:
+    Type: Number
+    Default: 2
+    Description: Desired number of EC2 instances
+
+  MinSize:
+    Type: Number
+    Default: 2
+    Description: Minimum number of EC2 instances
+
+  MaxSize:
+    Type: Number
+    Default: 4
+    Description: Maximum number of EC2 instances
+
+  LoadBalancerStackName:
+    Type: String
+    Default: ha-webapp-alb
+    Description: Name of the CloudFormation stack containing the Application Load Balancer
+
+Resources:
+
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-EC2Role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-EC2Role'
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub '${AWS::StackName}-InstanceProfile'
+      Roles:
+        - !Ref EC2Role
+
+  WebLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub '${AWS::StackName}-LaunchTemplate'
+      LaunchTemplateData:
+
+        #ImageId: ami-0c02fb55956c7d316
+        # To use latest AMI for this region
+        ImageId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}'
+
+        InstanceType: !Ref InstanceType
+
+        SecurityGroupIds:
+          - !Ref WebServerSecurityGroupId
+
+        IamInstanceProfile:
+          Name: !Ref EC2InstanceProfile
+
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+
+            dnf update -y
+            dnf install -y nginx
+
+            systemctl enable nginx
+            systemctl start nginx
+
+            echo "<html>
+            <head>
+            <title>HA AWS Web Application</title>
+            </head>
+            <body>
+            <h1>Highly Available AWS Web Application</h1>
+            <p>Server: $(hostname)</p>
+            <p>Environment: ${AWS::StackName}</p>
+            </body>
+            </html>" > /usr/share/nginx/html/index.html
+
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub '${AWS::StackName}-WebServer'
+
+  WebAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      MinSize: !Ref MinSize
+      MaxSize: !Ref MaxSize
+      DesiredCapacity: !Ref DesiredCapacity
+
+      VPCZoneIdentifier:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+
+      TargetGroupARNs:
+        - Fn::ImportValue:
+            !Sub '${LoadBalancerStackName}-TargetGroupArn' # handle the dependancy between ALB and EC2/AutoScalingGroup
+
+      LaunchTemplate:
+        LaunchTemplateId: !Ref WebLaunchTemplate
+        Version: !GetAtt WebLaunchTemplate.LatestVersionNumber
+
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 120
+
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-WebServer'
+          PropagateAtLaunch: true
+
+Outputs:
+
+  AutoScalingGroupName:
+    Description: Name of the Auto Scaling Group
+    Value: !Ref WebAutoScalingGroup
+
+  LaunchTemplateId:
+    Description: ID of the EC2 Launch Template
+    Value: !Ref WebLaunchTemplate

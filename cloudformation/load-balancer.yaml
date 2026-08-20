@@ -72,6 +72,8 @@ Outputs:
   TargetGroupArn:
     Description: ARN of the web server target group
     Value: !Ref WebTargetGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-WebTargetGroupArn'
 
   LoadBalancerArn:
     Description: ARN of the Application Load Balancer
