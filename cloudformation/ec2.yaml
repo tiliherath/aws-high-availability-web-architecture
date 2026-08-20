@@ -46,7 +46,8 @@ Resources:
   EC2Role:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${AWS::StackName}-EC2Role'
+      # To avoid naming conflicts, you can use the stack name as a prefix for the role name
+      #RoleName: !Sub '${AWS::StackName}-EC2Role'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -65,7 +66,7 @@ Resources:
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      InstanceProfileName: !Sub '${AWS::StackName}-InstanceProfile'
+      #InstanceProfileName: !Sub '${AWS::StackName}-InstanceProfile'
       Roles:
         - !Ref EC2Role
 
@@ -130,12 +131,12 @@ Resources:
 
       TargetGroupARNs:
         - Fn::ImportValue:
-            !Sub '${LoadBalancerStackName}-TargetGroupArn' # Handle the dependancy between ALB and EC2/AutoScalingGroup
+            !Sub '${LoadBalancerStackName}-TargetGroupArn'
 
       LaunchTemplate:
         LaunchTemplateId: !Ref WebLaunchTemplate
         Version: !GetAtt WebLaunchTemplate.LatestVersionNumber
-
+  
       HealthCheckType: ELB
       HealthCheckGracePeriod: 120
 
@@ -143,6 +144,16 @@ Resources:
         - Key: Name
           Value: !Sub '${AWS::StackName}-WebServer'
           PropagateAtLaunch: true
+  
+  TargetTrackingScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref WebAutoScalingGroup
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: 50
 
 Outputs:
 
