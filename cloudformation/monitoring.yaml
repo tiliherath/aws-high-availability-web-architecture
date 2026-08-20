@@ -1,8 +1,8 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
 Description: >
-  Creates CloudWatch monitoring and CPU-based scaling policies
-  for the highly available AWS web application.
+  Creates CloudWatch monitoring for the highly available
+  AWS web application.
 
 Parameters:
 
@@ -12,28 +12,10 @@ Parameters:
 
 Resources:
 
-  ScaleOutPolicy:
-    Type: AWS::AutoScaling::ScalingPolicy
-    Properties:
-      AutoScalingGroupName: !Ref AutoScalingGroupName
-      PolicyType: SimpleScaling
-      AdjustmentType: ChangeInCapacity
-      ScalingAdjustment: 1
-      Cooldown: 300
-
-  ScaleInPolicy:
-    Type: AWS::AutoScaling::ScalingPolicy
-    Properties:
-      AutoScalingGroupName: !Ref AutoScalingGroupName
-      PolicyType: SimpleScaling
-      AdjustmentType: ChangeInCapacity
-      ScalingAdjustment: -1
-      Cooldown: 300
-
   HighCPUAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmDescription: Scale out when average CPU exceeds 70 percent
+      AlarmDescription: Monitor high average CPU utilization
       Namespace: AWS/EC2
       MetricName: CPUUtilization
       Statistic: Average
@@ -44,14 +26,12 @@ Resources:
       Dimensions:
         - Name: AutoScalingGroupName
           Value: !Ref AutoScalingGroupName
-      AlarmActions:
-        - !Ref ScaleOutPolicy
       TreatMissingData: notBreaching
 
   LowCPUAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmDescription: Scale in when average CPU falls below 30 percent
+      AlarmDescription: Monitor low average CPU utilization
       Namespace: AWS/EC2
       MetricName: CPUUtilization
       Statistic: Average
@@ -62,8 +42,6 @@ Resources:
       Dimensions:
         - Name: AutoScalingGroupName
           Value: !Ref AutoScalingGroupName
-      AlarmActions:
-        - !Ref ScaleInPolicy
       TreatMissingData: notBreaching
 
 Outputs:
